@@ -32,6 +32,7 @@
 #include <linux/bitops.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
+#include <linux/sizes.h>
 #include <wait_bit.h>
 #include <spi.h>
 #include <spi-mem.h>
@@ -1191,9 +1192,13 @@ int cadence_qspi_apb_write_execute(struct cadence_spi_priv *priv,
 	 */
 	cadence_qspi_apb_enable_linear_mode(true);
 	if (!priv->dtr && priv->use_dac_mode && (to + len < priv->ahbsize)) {
+		if (len >= SZ_1K && priv->use_phy)
+			cadence_qspi_apb_phy_enable(priv, true);
 		memcpy_toio(priv->ahbbase + to, buf, len);
 		if (!cadence_qspi_wait_idle(priv->regbase))
 			return -EIO;
+		if (len >= SZ_1K && priv->use_phy)
+			cadence_qspi_apb_phy_enable(priv, false);
 		return 0;
 	}
 
