@@ -67,4 +67,8 @@
 	flash@0 {
 		cdns,phy-mode;
 	};
+
+	ospi0_nand {
+		cdns,phy-mode;
+	};
 };
