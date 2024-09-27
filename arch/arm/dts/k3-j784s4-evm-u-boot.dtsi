@@ -73,6 +73,7 @@
 
 &ospi0_nand {
 	bootph-pre-ram;
+	cdns,phy-mode;
 };
 
 &ospi1 {
