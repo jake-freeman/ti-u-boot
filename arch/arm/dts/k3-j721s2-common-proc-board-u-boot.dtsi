@@ -131,7 +131,8 @@
 };
 
 &ospi0_nand {
-		bootph-all;
+	cdns,phy-mode;
+	bootph-all;
 };
 
 &ospi1 {
