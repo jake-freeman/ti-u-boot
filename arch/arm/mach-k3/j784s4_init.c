@@ -244,6 +244,13 @@ void board_init_f(ulong dummy)
 		if (ret)
 			printf("AVS init failed: %d\n", ret);
 	}
+	if (IS_ENABLED(CONFIG_CPU_V7R) && IS_ENABLED(CONFIG_K3_BIST)) {
+		ret = uclass_get_device_by_driver(UCLASS_MISC,
+						  DM_DRIVER_GET(k3_bist),
+						  &dev);
+		if (ret)
+			printf("Failed to run BIST: %d\n", ret);
+	}
 
 	if (IS_ENABLED(CONFIG_CPU_V7R))
 		setup_navss_nb();
