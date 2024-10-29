@@ -48,6 +48,9 @@ static void __maybe_unused detect_enable_spinand(void *blob)
 			return;
 
 		nand_offset = fdt_node_offset_by_compatible(blob, -1, "spi-nand");
+		if (nand_offset < 0)
+			return;
+
 		nor_offset = fdt_node_offset_by_compatible(blob,
 							   fdt_parent_offset(blob, nand_offset),
 							   "jedec,spi-nor");
