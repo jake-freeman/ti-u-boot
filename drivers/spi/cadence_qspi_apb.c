@@ -231,12 +231,12 @@ static unsigned int cadence_qspi_wait_idle(void *reg_base)
 		 * reading back the same idle status consecutively
 		 */
 		if (count >= CQSPI_POLL_IDLE_RETRY)
-			return 1;
+			return 0;
 	}
 
 	/* Timeout, still in busy mode. */
 	printf("QSPI: QSPI is still busy after poll for %d ms.\n", timeout);
-	return 0;
+	return -ETIMEDOUT;
 }
 
 void cadence_qspi_apb_readdata_capture(void *reg_base,
@@ -561,8 +561,8 @@ int cadence_qspi_apb_exec_flash_cmd(void *reg_base, unsigned int reg)
 	}
 
 	/* Polling QSPI idle status. */
-	if (!cadence_qspi_wait_idle(reg_base))
-		return -EIO;
+	if (cadence_qspi_wait_idle(reg_base))
+		return -ETIMEDOUT;
 
 	/* Flush the CMDCTRL reg after the execution */
 	writel(0, reg_base + CQSPI_REG_CMDCTRL);
@@ -961,8 +961,8 @@ cadence_qspi_apb_direct_read_execute(struct cadence_spi_priv *priv,
 
 	if (len < 16) {
 		memcpy_fromio(buf, priv->ahbbase + from, len);
-		if (!cadence_qspi_wait_idle(priv->regbase))
-			return -EIO;
+		if (cadence_qspi_wait_idle(priv->regbase))
+			return -ETIMEDOUT;
 		return 0;
 	}
 
@@ -970,8 +970,8 @@ cadence_qspi_apb_direct_read_execute(struct cadence_spi_priv *priv,
 		if (dma_memcpy(buf, priv->ahbbase + from, len) < 0)
 			memcpy_fromio(buf, priv->ahbbase + from, len);
 
-		if (!cadence_qspi_wait_idle(priv->regbase))
-			return -EIO;
+		if (cadence_qspi_wait_idle(priv->regbase))
+			return -ETIMEDOUT;
 		return 0;
 	}
 
@@ -1195,8 +1195,8 @@ int cadence_qspi_apb_write_execute(struct cadence_spi_priv *priv,
 		if (len >= SZ_1K && priv->use_phy)
 			cadence_qspi_apb_phy_enable(priv, true);
 		memcpy_toio(priv->ahbbase + to, buf, len);
-		if (!cadence_qspi_wait_idle(priv->regbase))
-			return -EIO;
+		if (cadence_qspi_wait_idle(priv->regbase))
+			return -ETIMEDOUT;
 		if (len >= SZ_1K && priv->use_phy)
 			cadence_qspi_apb_phy_enable(priv, false);
 		return 0;
