@@ -385,14 +385,15 @@ static void cadence_qspi_apb_phy_enable(struct cadence_spi_priv *priv,
 	cadence_qspi_wait_idle(reg_base);
 }
 
-void cadence_qspi_apb_phy_pre_config_sdr(struct cadence_spi_priv *priv)
+void cadence_qspi_apb_phy_pre_config(struct cadence_spi_priv *priv,
+				     const bool bypass, const bool dqs)
 {
 	void *reg_base = priv->regbase;
 	unsigned int reg;
 	u8 dummy;
 
-	cadence_qspi_apb_readdata_capture(reg_base, 1,
-					  false, priv->phy_read_delay);
+	cadence_qspi_apb_readdata_capture(reg_base, bypass, dqs,
+					  priv->phy_read_delay);
 
 	reg = readl(reg_base + CQSPI_REG_CONFIG);
 	reg &= ~(CQSPI_REG_CONFIG_PHY_ENABLE_MASK |
@@ -423,11 +424,20 @@ void cadence_qspi_apb_phy_pre_config_sdr(struct cadence_spi_priv *priv)
 	writel(reg, reg_base + CQSPI_REG_PHY_DLL_MASTER);
 }
 
-void cadence_qspi_apb_phy_post_config_sdr(struct cadence_spi_priv *priv)
+void cadence_qspi_apb_phy_post_config(struct cadence_spi_priv *priv,
+				      const unsigned int delay)
 {
 	void *reg_base = priv->regbase;
 	unsigned int reg;
 	u8 dummy;
+
+	reg = readl(reg_base + CQSPI_REG_RD_DATA_CAPTURE);
+	reg &= ~(CQSPI_REG_RD_DATA_CAPTURE_DELAY_MASK
+		 << CQSPI_REG_RD_DATA_CAPTURE_DELAY_LSB);
+
+	reg |= (delay & CQSPI_REG_RD_DATA_CAPTURE_DELAY_MASK)
+	       << CQSPI_REG_RD_DATA_CAPTURE_DELAY_LSB;
+	writel(reg, reg_base + CQSPI_REG_RD_DATA_CAPTURE);
 
 	reg = readl(reg_base + CQSPI_REG_CONFIG);
 	reg &= ~(CQSPI_REG_CONFIG_PHY_ENABLE_MASK |

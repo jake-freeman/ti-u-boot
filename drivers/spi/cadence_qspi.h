@@ -381,8 +381,10 @@ bool cadence_qspi_apb_op_eligible(const struct spi_mem_op *op);
 bool cadence_qspi_apb_op_eligible_sdr(const struct spi_mem_op *op);
 void cadence_qspi_apb_readdata_capture(void *reg_base,
 	unsigned int bypass, const bool dqs, unsigned int delay);
-void cadence_qspi_apb_phy_pre_config_sdr(struct cadence_spi_priv *priv);
-void cadence_qspi_apb_phy_post_config_sdr(struct cadence_spi_priv *priv);
+void cadence_qspi_apb_phy_pre_config(struct cadence_spi_priv *priv,
+				     const bool bypass, const bool dqs);
+void cadence_qspi_apb_phy_post_config(struct cadence_spi_priv *priv,
+				      const unsigned int delay);
 unsigned int cm_get_qspi_controller_clk_hz(void);
 int cadence_qspi_apb_dma_read(struct cadence_spi_priv *priv,
 			      const struct spi_mem_op *op);

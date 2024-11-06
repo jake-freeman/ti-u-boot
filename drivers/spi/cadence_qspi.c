@@ -1120,6 +1120,8 @@ static void cadence_spi_mem_do_calibration(struct spi_slave *spi,
 	if (cadence_qspi_apb_op_eligible(op)) {
 		priv->use_dqs = true;
 
+		cadence_qspi_apb_phy_pre_config(priv, 0, 1);
+
 		ret = cadence_spi_phy_calibrate(priv, spi);
 		if (ret)
 			dev_warn(bus,
@@ -1128,7 +1130,7 @@ static void cadence_spi_mem_do_calibration(struct spi_slave *spi,
 	} else if (cadence_qspi_apb_op_eligible_sdr(op)) {
 		priv->use_dqs = false;
 
-		cadence_qspi_apb_phy_pre_config_sdr(priv);
+		cadence_qspi_apb_phy_pre_config(priv, 1, 0);
 
 		ret = cadence_spi_phy_calibrate_sdr(priv, spi);
 		if (ret)
@@ -1136,12 +1138,13 @@ static void cadence_spi_mem_do_calibration(struct spi_slave *spi,
 				 "PHY calibration failed: %d. Falling back to slower clock speeds.\n",
 				 ret);
 
-		cadence_qspi_apb_phy_post_config_sdr(priv);
 	} else {
 		dev_warn(bus,
 			 "Given read_op not eligible. Skipping Calibration.\n");
 		return;
 	}
+
+	cadence_qspi_apb_phy_post_config(priv, priv->read_delay);
 }
 
 static int cadence_spi_ofdata_phy_pattern(ofnode flash_node)
