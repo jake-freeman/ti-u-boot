@@ -29,6 +29,7 @@
 #include <log.h>
 #include <asm/io.h>
 #include <dma.h>
+#include <linux/iopoll.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
@@ -237,6 +238,51 @@ static unsigned int cadence_qspi_wait_idle(void *reg_base)
 	/* Timeout, still in busy mode. */
 	printf("QSPI: QSPI is still busy after poll for %d ms.\n", timeout);
 	return -ETIMEDOUT;
+}
+
+int cadence_qspi_apb_resync_dll(void *reg_base)
+{
+	unsigned int reg;
+	int ret;
+
+	ret = cadence_qspi_wait_idle(reg_base);
+
+	if (!ret) {
+		reg = readl(reg_base + CQSPI_REG_CONFIG);
+		reg &= ~(CQSPI_REG_CONFIG_ENABLE);
+		writel(reg, reg_base + CQSPI_REG_CONFIG);
+
+		reg = readl(reg_base + CQSPI_REG_PHY_CONFIG);
+		reg &= ~(CQSPI_REG_PHY_CONFIG_DLL_RESET | CQSPI_REG_PHY_CONFIG_RESYNC);
+		writel(reg, reg_base + CQSPI_REG_PHY_CONFIG);
+
+		reg = readl(reg_base + CQSPI_REG_PHY_DLL_MASTER);
+		reg |= (CQSPI_REG_PHY_DLL_MASTER_INIT_DELAY_VAL
+			<< CQSPI_REG_PHY_DLL_MASTER_INIT_DELAY_LSB);
+		writel(reg, reg_base + CQSPI_REG_PHY_DLL_MASTER);
+
+		reg = readl(reg_base + CQSPI_REG_PHY_CONFIG);
+		reg |= CQSPI_REG_PHY_CONFIG_DLL_RESET;
+		writel(reg, reg_base + CQSPI_REG_PHY_CONFIG);
+
+		readl_poll_timeout(reg_base + CQSPI_REG_DLL_OBS_LOW, reg,
+				   !(reg &= (1 << CQSPI_REG_DLL_OBS_LOW_DLL_LOCK_LSB)),
+				   CQSPI_DLL_TIMEOUT_US);
+
+		readl_poll_timeout(reg_base + CQSPI_REG_DLL_OBS_LOW, reg,
+				   !(reg &= (1 << CQSPI_REG_DLL_OBS_LOW_LOOPBACK_LOCK_LSB)),
+				   CQSPI_DLL_TIMEOUT_US);
+
+		reg = readl(reg_base + CQSPI_REG_PHY_CONFIG);
+		reg |= CQSPI_REG_PHY_CONFIG_RESYNC;
+		writel(reg, reg_base + CQSPI_REG_PHY_CONFIG);
+
+		reg = readl(reg_base + CQSPI_REG_CONFIG);
+		reg |= CQSPI_REG_CONFIG_ENABLE;
+		writel(reg, reg_base + CQSPI_REG_CONFIG);
+	}
+
+	return ret;
 }
 
 void cadence_qspi_apb_readdata_capture(void *reg_base,

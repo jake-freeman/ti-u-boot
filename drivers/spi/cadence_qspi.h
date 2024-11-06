@@ -21,6 +21,8 @@
 #define CQSPI_REG_RETRY                         10000
 #define CQSPI_POLL_IDLE_RETRY                   3
 
+#define CQSPI_DLL_TIMEOUT_US			300
+
 /* Transfer mode */
 #define CQSPI_INST_TYPE_SINGLE                  0
 #define CQSPI_INST_TYPE_DUAL                    1
@@ -172,15 +174,22 @@
 #define CQSPI_REG_PHY_CONFIG_RX_DEL_MASK	0x7F
 #define CQSPI_REG_PHY_CONFIG_TX_DEL_LSB		16
 #define CQSPI_REG_PHY_CONFIG_TX_DEL_MASK	0x7F
+#define CQSPI_REG_PHY_CONFIG_DLL_RESET		BIT(30)
 #define CQSPI_REG_PHY_CONFIG_RESYNC		BIT(31)
 #define CQSPI_REG_PHY_CONFIG_RESET_FLD_MASK     0x40000000
 
 #define CQSPI_REG_PHY_DLL_MASTER		0xB8
+#define CQSPI_REG_PHY_DLL_MASTER_INIT_DELAY_LSB	0
+#define CQSPI_REG_PHY_DLL_MASTER_INIT_DELAY_VAL	16
 #define CQSPI_REG_PHY_DLL_MASTER_DLY_ELMTS_LEN	0x7
 #define CQSPI_REG_PHY_DLL_MASTER_DLY_ELMTS_LSB	20
 #define CQSPI_REG_PHY_DLL_MASTER_DLY_ELMTS_3	0x2
 #define CQSPI_REG_PHY_DLL_MASTER_BYPASS		BIT(23)
 #define CQSPI_REG_PHY_DLL_MASTER_CYCLE		BIT(24)
+
+#define CQSPI_REG_DLL_OBS_LOW			0xBC
+#define CQSPI_REG_DLL_OBS_LOW_DLL_LOCK_LSB	0
+#define CQSPI_REG_DLL_OBS_LOW_LOOPBACK_LOCK_LSB	15
 
 #define CQSPI_DMA_DST_ADDR_REG                  0x1800
 #define CQSPI_DMA_DST_SIZE_REG                  0x1804
@@ -367,6 +376,7 @@ void cadence_qspi_apb_delay(void *reg_base,
 	unsigned int tshsl_ns, unsigned int tsd2d_ns,
 	unsigned int tchsh_ns, unsigned int tslch_ns);
 void cadence_qspi_apb_enter_xip(void *reg_base, char xip_dummy);
+int cadence_qspi_apb_resync_dll(void *reg_base);
 void cadence_qspi_apb_readdata_capture(void *reg_base,
 	unsigned int bypass, const bool dqs, unsigned int delay);
 void cadence_qspi_apb_phy_pre_config_sdr(struct cadence_spi_priv *priv);

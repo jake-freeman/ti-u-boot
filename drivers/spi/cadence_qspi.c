@@ -64,12 +64,20 @@ static int cadence_spi_get_temp(int *temp)
 	return 0;
 }
 
-static void cadence_spi_phy_apply_setting(struct cadence_spi_priv *priv,
-					  struct phy_setting *phy)
+static int cadence_spi_phy_apply_setting(struct cadence_spi_priv *priv,
+					 struct phy_setting *phy)
 {
+	unsigned int reg;
+
+	reg = readl(priv->regbase + CQSPI_REG_RD_DATA_CAPTURE);
+	reg |= CQSPI_REG_RD_DATA_CAPTURE_SMPL_EDGE;
+	writel(reg, priv->regbase + CQSPI_REG_RD_DATA_CAPTURE);
+
 	cadence_qspi_apb_set_rx_dll(priv->regbase, phy->rx);
 	cadence_qspi_apb_set_tx_dll(priv->regbase, phy->tx);
 	priv->phy_read_delay = phy->read_delay;
+
+	return cadence_qspi_apb_resync_dll(priv->regbase);
 }
 
 static int cadence_spi_phy_check_pattern(struct cadence_spi_priv *priv,
@@ -112,11 +120,12 @@ static int cadence_spi_find_rx_low(struct cadence_spi_priv *priv,
 	do {
 		phy->rx = 0;
 		do {
-			cadence_spi_phy_apply_setting(priv, phy);
-			ret = cadence_spi_phy_check_pattern(priv, spi);
-			if (!ret)
-				return 0;
-
+			ret = cadence_spi_phy_apply_setting(priv, phy);
+			if (!ret) {
+				ret = cadence_spi_phy_check_pattern(priv, spi);
+				if (!ret)
+					return 0;
+			}
 			phy->rx++;
 		} while (phy->rx <= CQSPI_PHY_LOW_RX_BOUND);
 
@@ -135,11 +144,12 @@ static int cadence_spi_find_rx_low_sdr(struct cadence_spi_priv *priv,
 
 	phy->rx = 0;
 	do {
-		cadence_spi_phy_apply_setting(priv, phy);
-		ret = cadence_spi_phy_check_pattern(priv, spi);
-		if (!ret)
-			return 0;
-
+		ret = cadence_spi_phy_apply_setting(priv, phy);
+		if (!ret) {
+			ret = cadence_spi_phy_check_pattern(priv, spi);
+			if (!ret)
+				return 0;
+		}
 		phy->rx++;
 	} while (phy->rx < CQSPI_PHY_MAX_DELAY - 1);
 
@@ -156,11 +166,12 @@ static int cadence_spi_find_rx_high(struct cadence_spi_priv *priv,
 	do {
 		phy->rx = CQSPI_PHY_MAX_RX;
 		do {
-			cadence_spi_phy_apply_setting(priv, phy);
-			ret = cadence_spi_phy_check_pattern(priv, spi);
-			if (!ret)
-				return 0;
-
+			ret = cadence_spi_phy_apply_setting(priv, phy);
+			if (!ret) {
+				ret = cadence_spi_phy_check_pattern(priv, spi);
+				if (!ret)
+					return 0;
+			}
 			phy->rx--;
 		} while (phy->rx >= CQSPI_PHY_HIGH_RX_BOUND);
 
@@ -180,11 +191,12 @@ static int cadence_spi_find_rx_high_sdr(struct cadence_spi_priv *priv,
 
 	phy->rx = CQSPI_PHY_MAX_DELAY;
 	do {
-		cadence_spi_phy_apply_setting(priv, phy);
-		ret = cadence_spi_phy_check_pattern(priv, spi);
-		if (!ret)
-			return 0;
-
+		ret = cadence_spi_phy_apply_setting(priv, phy);
+		if (!ret) {
+			ret = cadence_spi_phy_check_pattern(priv, spi);
+			if (!ret)
+				return 0;
+		}
 		phy->rx--;
 	} while (phy->rx > lowerbound);
 
@@ -201,11 +213,12 @@ static int cadence_spi_find_tx_low(struct cadence_spi_priv *priv,
 	do {
 		phy->tx = 0;
 		do {
-			cadence_spi_phy_apply_setting(priv, phy);
-			ret = cadence_spi_phy_check_pattern(priv, spi);
-			if (!ret)
-				return 0;
-
+			ret = cadence_spi_phy_apply_setting(priv, phy);
+			if (!ret) {
+				ret = cadence_spi_phy_check_pattern(priv, spi);
+				if (!ret)
+					return 0;
+			}
 			phy->tx++;
 		} while (phy->tx <= CQSPI_PHY_LOW_TX_BOUND);
 
@@ -225,11 +238,12 @@ static int cadence_spi_find_tx_high(struct cadence_spi_priv *priv,
 	do {
 		phy->tx = CQSPI_PHY_MAX_TX;
 		do {
-			cadence_spi_phy_apply_setting(priv, phy);
-			ret = cadence_spi_phy_check_pattern(priv, spi);
-			if (!ret)
-				return 0;
-
+			ret = cadence_spi_phy_apply_setting(priv, phy);
+			if (!ret) {
+				ret = cadence_spi_phy_check_pattern(priv, spi);
+				if (!ret)
+					return 0;
+			}
 			phy->tx--;
 		} while (phy->tx >= CQSPI_PHY_HIGH_TX_BOUND);
 
@@ -257,8 +271,10 @@ static int cadence_spi_phy_find_gaplow(struct cadence_spi_priv *priv,
 	mid.read_delay = left.read_delay;
 
 	do {
-		cadence_spi_phy_apply_setting(priv, &mid);
-		ret = cadence_spi_phy_check_pattern(priv, spi);
+		ret = cadence_spi_phy_apply_setting(priv, &mid);
+		if (!ret)
+			ret = cadence_spi_phy_check_pattern(priv, spi);
+
 		if (ret) {
 			/*
 			 * Since we couldn't find the pattern, we need to go to
@@ -305,8 +321,10 @@ static int cadence_spi_phy_find_gaphigh(struct cadence_spi_priv *priv,
 	mid.read_delay = right.read_delay;
 
 	do {
-		cadence_spi_phy_apply_setting(priv, &mid);
-		ret = cadence_spi_phy_check_pattern(priv, spi);
+		ret = cadence_spi_phy_apply_setting(priv, &mid);
+		if (!ret)
+			ret = cadence_spi_phy_check_pattern(priv, spi);
+
 		if (ret) {
 			/*
 			 * Since we couldn't find the pattern, we need to go the
@@ -477,13 +495,18 @@ static int cadence_spi_phy_calibrate(struct cadence_spi_priv *priv,
 	temp = bottomleft;
 	temp.tx += 4;
 	temp.rx += 4;
-	cadence_spi_phy_apply_setting(priv, &temp);
-	ret = cadence_spi_phy_check_pattern(priv, spi);
+	ret = cadence_spi_phy_apply_setting(priv, &temp);
+	if (!ret)
+		ret = cadence_spi_phy_check_pattern(priv, spi);
+
 	if (ret) {
 		temp.read_delay--;
-		cadence_spi_phy_apply_setting(priv, &temp);
-		ret = cadence_spi_phy_check_pattern(priv, spi);
+		ret = cadence_spi_phy_apply_setting(priv, &temp);
+		if (!ret)
+			ret = cadence_spi_phy_check_pattern(priv, spi);
 	}
+
+	/* TODO: if (ret) */
 
 	if (!ret)
 		bottomleft.read_delay = temp.read_delay;
@@ -498,13 +521,18 @@ static int cadence_spi_phy_calibrate(struct cadence_spi_priv *priv,
 	temp = topright;
 	temp.tx -= 4;
 	temp.rx -= 4;
-	cadence_spi_phy_apply_setting(priv, &temp);
-	ret = cadence_spi_phy_check_pattern(priv, spi);
+	ret = cadence_spi_phy_apply_setting(priv, &temp);
+	if (!ret)
+		ret = cadence_spi_phy_check_pattern(priv, spi);
+
 	if (ret) {
 		temp.read_delay++;
-		cadence_spi_phy_apply_setting(priv, &temp);
-		ret = cadence_spi_phy_check_pattern(priv, spi);
+		ret = cadence_spi_phy_apply_setting(priv, &temp);
+		if (!ret)
+			ret = cadence_spi_phy_check_pattern(priv, spi);
 	}
+
+	/* TODO: if (ret) */
 
 	if (!ret)
 		topright.read_delay = temp.read_delay;
@@ -594,11 +622,13 @@ static int cadence_spi_phy_calibrate(struct cadence_spi_priv *priv,
 	}
 
 	/* Set the final PHY settings we found. */
-	cadence_spi_phy_apply_setting(priv, &searchpoint);
+
 	dev_dbg(bus, "Final tuning point: RX: %d TX: %d RD: %d\n",
 		searchpoint.rx, searchpoint.tx, searchpoint.read_delay);
+	ret = cadence_spi_phy_apply_setting(priv, &searchpoint);
+	if (!ret)
+		ret = cadence_spi_phy_check_pattern(priv, spi);
 
-	ret = cadence_spi_phy_check_pattern(priv, spi);
 	if (ret) {
 		debug("Failed to find pattern at final calibration point\n");
 		ret = -EINVAL;
@@ -650,11 +680,12 @@ static int cadence_spi_phy_calibrate_sdr(struct cadence_spi_priv *priv,
 	window1 = rxhigh.rx - rxlow.rx;
 	first.rx = rxlow.rx + (window1 / 2);
 
-	cadence_spi_phy_apply_setting(priv, &first);
 	dev_dbg(bus, "First tuning point: RX: %d TX: %d RD: %d\n", first.rx,
 		first.tx, first.read_delay);
+	ret = cadence_spi_phy_apply_setting(priv, &first);
+	if (!ret)
+		ret = cadence_spi_phy_check_pattern(priv, spi);
 
-	ret = cadence_spi_phy_check_pattern(priv, spi);
 	if (ret || first.read_delay > CQSPI_PHY_MAX_RD)
 		goto out;
 
@@ -680,11 +711,12 @@ static int cadence_spi_phy_calibrate_sdr(struct cadence_spi_priv *priv,
 	second.rx = rxlow.rx + (window2 / 2);
 	second.read_delay = rxlow.read_delay;
 
-	cadence_spi_phy_apply_setting(priv, &second);
 	dev_dbg(bus, "Second tuning point: RX: %d TX: %d RD: %d\n", second.rx,
 		second.tx, second.read_delay);
+	ret = cadence_spi_phy_apply_setting(priv, &second);
+	if (!ret)
+		ret = cadence_spi_phy_check_pattern(priv, spi);
 
-	ret = cadence_spi_phy_check_pattern(priv, spi);
 	if (ret || second.read_delay > CQSPI_PHY_MAX_RD)
 		window2 = 0;
 
@@ -698,15 +730,16 @@ compare:
 		final.read_delay = first.read_delay;
 	}
 
-	cadence_spi_phy_apply_setting(priv, &final);
-	ret = cadence_spi_phy_check_pattern(priv, spi);
+	dev_dbg(bus, "Final tuning point: RX: %d TX: %d RD: %d\n", final.rx,
+		final.tx, final.read_delay);
+	ret = cadence_spi_phy_apply_setting(priv, &final);
+	if (!ret)
+		ret = cadence_spi_phy_check_pattern(priv, spi);
 
 	if (ret) {
 		ret = -EINVAL;
 		goto out;
 	}
-	dev_dbg(bus, "Final tuning point: RX: %d TX: %d RD: %d\n", final.rx,
-		final.tx, final.read_delay);
 
 out:
 	if (ret)
