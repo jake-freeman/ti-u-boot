@@ -377,6 +377,8 @@ void cadence_qspi_apb_delay(void *reg_base,
 	unsigned int tchsh_ns, unsigned int tslch_ns);
 void cadence_qspi_apb_enter_xip(void *reg_base, char xip_dummy);
 int cadence_qspi_apb_resync_dll(void *reg_base);
+bool cadence_qspi_apb_op_eligible(const struct spi_mem_op *op);
+bool cadence_qspi_apb_op_eligible_sdr(const struct spi_mem_op *op);
 void cadence_qspi_apb_readdata_capture(void *reg_base,
 	unsigned int bypass, const bool dqs, unsigned int delay);
 void cadence_qspi_apb_phy_pre_config_sdr(struct cadence_spi_priv *priv);

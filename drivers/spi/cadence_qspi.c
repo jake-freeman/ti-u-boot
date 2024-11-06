@@ -1117,7 +1117,7 @@ static void cadence_spi_mem_do_calibration(struct spi_slave *spi,
 		return;
 	}
 
-	if (op->cmd.dtr || op->addr.dtr || op->dummy.dtr || op->data.dtr) {
+	if (cadence_qspi_apb_op_eligible(op)) {
 		priv->use_dqs = true;
 
 		ret = cadence_spi_phy_calibrate(priv, spi);
@@ -1125,7 +1125,7 @@ static void cadence_spi_mem_do_calibration(struct spi_slave *spi,
 			dev_warn(bus,
 				 "PHY calibration failed: %d. Falling back to slower clock speeds.\n",
 				 ret);
-	} else {
+	} else if (cadence_qspi_apb_op_eligible_sdr(op)) {
 		priv->use_dqs = false;
 
 		cadence_qspi_apb_phy_pre_config_sdr(priv);
@@ -1137,6 +1137,10 @@ static void cadence_spi_mem_do_calibration(struct spi_slave *spi,
 				 ret);
 
 		cadence_qspi_apb_phy_post_config_sdr(priv);
+	} else {
+		dev_warn(bus,
+			 "Given read_op not eligible. Skipping Calibration.\n");
+		return;
 	}
 }
 

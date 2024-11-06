@@ -111,6 +111,37 @@ static unsigned int cadence_qspi_calc_dummy(const struct spi_mem_op *op,
 	return dummy_clk;
 }
 
+bool cadence_qspi_apb_op_eligible(const struct spi_mem_op *op)
+{
+	/* PHY is only tuned for 8D-8D-8D. */
+	if (!(op->cmd.dtr && op->addr.dtr && op->dummy.dtr && op->data.dtr))
+		return false;
+	if (op->cmd.buswidth != 8)
+		return false;
+	if (!(op->addr.nbytes) || op->addr.buswidth != 8)
+		return false;
+	if (!(op->dummy.nbytes) || op->dummy.buswidth != 8)
+		return false;
+	if (!(op->data.nbytes) || op->data.buswidth != 8)
+		return false;
+
+	return true;
+}
+
+bool cadence_qspi_apb_op_eligible_sdr(const struct spi_mem_op *op)
+{
+	if (op->cmd.dtr || op->addr.dtr || op->dummy.dtr || op->data.dtr)
+		return false;
+	if (!(op->addr.nbytes) || op->addr.buswidth < 1)
+		return false;
+	if (!(op->dummy.nbytes) || op->dummy.buswidth < 1)
+		return false;
+	if (!(op->data.nbytes) || op->data.buswidth < 1)
+		return false;
+
+	return true;
+}
+
 /*
  * Check if we can use PHY on the given op. This is assuming it will be a DAC
  * mode read, since PHY won't work on any other type of operation anyway.
@@ -124,28 +155,10 @@ static bool cadence_qspi_apb_use_phy(struct cadence_spi_priv *priv,
 	if (op->data.nbytes < 16)
 		return false;
 
-	if (op->cmd.dtr || op->addr.dtr || op->dummy.dtr || op->data.dtr) {
-		/* PHY is only tuned for 8D-8D-8D. */
-		if (!priv->dtr)
-			return false;
-		if (op->cmd.buswidth != 8)
-			return false;
-		if (op->addr.nbytes && op->addr.buswidth != 8)
-			return false;
-		if (op->dummy.nbytes && op->dummy.buswidth != 8)
-			return false;
-		if (op->data.nbytes && op->data.buswidth != 8)
-			return false;
-	} else {
-		if (op->addr.nbytes && op->addr.buswidth < 1)
-			return false;
-		if (op->dummy.nbytes && op->dummy.buswidth < 1)
-			return false;
-		if (op->data.nbytes && op->data.buswidth < 1)
-			return false;
-	}
-
-	return true;
+	if (priv->use_dqs)
+		return cadence_qspi_apb_op_eligible(op);
+	else
+		return cadence_qspi_apb_op_eligible_sdr(op);
 }
 
 static u32 cadence_qspi_calc_rdreg(struct cadence_spi_priv *priv)
