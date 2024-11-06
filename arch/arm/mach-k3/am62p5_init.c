@@ -196,6 +196,7 @@ void board_init_f(ulong dummy)
 			printf("Failed to probe am65_cpsw_nuss driver\n");
 	}
 
+	setup_qos();
 	debug("am62px_init: %s done\n", __func__);
 }
 
