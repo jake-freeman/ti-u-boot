@@ -357,7 +357,7 @@ void cadence_qspi_apb_phy_pre_config_sdr(struct cadence_spi_priv *priv)
 		  << CQSPI_REG_PHY_DLL_MASTER_DLY_ELMTS_LSB) |
 		 CQSPI_REG_PHY_DLL_MASTER_BYPASS |
 		 CQSPI_REG_PHY_DLL_MASTER_CYCLE);
-	reg |= ((CQSPI_REG_PHY_DLL_MASTER_DLY_ELMTS_3
+	reg |= ((priv->phase_detect_selector
 		 << CQSPI_REG_PHY_DLL_MASTER_DLY_ELMTS_LSB) |
 		CQSPI_REG_PHY_DLL_MASTER_CYCLE);
 

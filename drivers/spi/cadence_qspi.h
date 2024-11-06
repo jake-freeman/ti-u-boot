@@ -254,6 +254,7 @@ struct cadence_spi_plat {
 	u32		fifo_depth;
 	u32		fifo_width;
 	u32		trigger_address;
+	int		phase_detect_selector;
 	fdt_addr_t	ahbsize;
 	bool		use_dac_mode;
 	int		read_delay;
@@ -281,6 +282,7 @@ struct cadence_spi_priv {
 	unsigned int	fifo_depth;
 	unsigned int	fifo_width;
 	unsigned int	trigger_address;
+	int		phase_detect_selector;
 	fdt_addr_t      ahbsize;
 	size_t		cmd_len;
 	u8		cmd_buf[32];
