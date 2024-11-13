@@ -32,7 +32,7 @@ static void k3_ringacc_ring_reset_raw(struct k3_nav_ring *ring)
 	u32 reg;
 
 	reg = readl(&ring->cfg->size);
-	reg &= KNAV_RINGACC_CFG_RING_SIZE_MASK;
+	reg &= ~KNAV_RINGACC_CFG_RING_SIZE_MASK;
 	reg |= ring->size;
 	writel(reg, &ring->cfg->size);
 }
