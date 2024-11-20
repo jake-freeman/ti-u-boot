@@ -163,6 +163,21 @@ config K3_DM_FW
 	  bootloader, it makes RM and PM services not being available
 	  during R5 SPL execution time.
 
+config K3_IODDR
+	bool "Enable IO+DDR Low Power Mode support"
+	depends on SPL && (SOC_K3_AM62A7 || SOC_K3_AM62P5)
+	default n
+	help
+	  Enable support for IO+DDR Low Power Mode. If this is enabled and a
+	  resume from IO+DDR is detected, K3_R5F_LPM_META_DATA will be used to
+	  restore TIFS and resume DM.
+
+config K3_R5F_LPM_META_DATA
+	hex "R5F LPM meta data memory"
+	depends on K3_IODDR
+	help
+	  Address of the R5F LPM meta data memory.
+
 config K3_X509_SWRV
 	int "SWRV for X509 certificate used for boot images"
 	default 1
