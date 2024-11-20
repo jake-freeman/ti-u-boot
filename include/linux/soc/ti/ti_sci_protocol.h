@@ -595,6 +595,14 @@ struct ti_sci_fwl_ops {
 };
 
 /**
+ * struct ti_sci_lpm_ops - Low Power Mode operations
+ * @restore_context: Request restoring context from DDR.
+ */
+struct ti_sci_lpm_ops {
+	int (*restore_context)(const struct ti_sci_handle *handle, u64 ctx_addr);
+};
+
+/**
  * struct ti_sci_ops - Function support for TI SCI
  * @board_ops:	Miscellaneous operations
  * @dev_ops:	Device specific operations
@@ -615,6 +623,7 @@ struct ti_sci_ops {
 	struct ti_sci_rm_psil_ops rm_psil_ops;
 	struct ti_sci_rm_udmap_ops rm_udmap_ops;
 	struct ti_sci_fwl_ops fwl_ops;
+	struct ti_sci_lpm_ops lpm_ops;
 };
 
 /**
