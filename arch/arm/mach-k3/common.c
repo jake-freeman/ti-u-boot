@@ -178,6 +178,47 @@ bool wkup_ctrl_is_lpm_exit(void)
 		wkup_ctrl_canuart_magic_word_set();
 }
 
+#if IS_ENABLED(CONFIG_K3_IODDR)
+static int lpm_restore_context(u64 ctx_addr)
+{
+	struct ti_sci_handle *ti_sci = get_ti_sci_handle();
+	int ret;
+
+	ret = ti_sci->ops.lpm_ops.restore_context(ti_sci, ctx_addr);
+	if (ret)
+		printf("Failed to restore context from DDR %d\n", ret);
+
+	return ret;
+}
+
+struct lpm_meta_data {
+	u64 dm_jump_address;
+	u64 tifs_context_save_address;
+	u64 reserved[30];
+} __packed__;
+
+void __noreturn lpm_resume_from_ddr(void)
+{
+	typedef void __noreturn (*image_entry_noargs_t)(void);
+	image_entry_noargs_t image_entry;
+	int ret;
+	struct lpm_meta_data *lpm_data = (struct lpm_meta_data *)CONFIG_K3_R5F_LPM_META_DATA;
+
+	ret = lpm_restore_context(lpm_data->tifs_context_save_address);
+	if (ret)
+		panic("Failed to restore context from 0x%p\n",
+		      (void *)lpm_data->tifs_context_save_address);
+
+	image_entry = (image_entry_noargs_t)(u64 *)lpm_data->dm_jump_address;
+	printf("Resuming from DDR, jumping to stored DM loadaddr 0x%p\n",
+	       image_entry);
+
+	image_entry();
+}
+#else
+void lpm_resume_from_ddr(void) {}
+#endif
+
 bool is_rom_loaded_sysfw(struct rom_extended_boot_data *data)
 {
 	if (strncmp(data->header, K3_ROM_BOOT_HEADER_MAGIC, 7))
