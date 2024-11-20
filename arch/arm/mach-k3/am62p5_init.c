@@ -169,6 +169,9 @@ void board_init_f(ulong dummy)
 		ret = uclass_get_device(UCLASS_RAM, 0, &dev);
 		if (ret)
 			panic("DRAM init failed: %d\n", ret);
+
+		if (wkup_ctrl_is_lpm_exit())
+			lpm_resume_from_ddr();
 	}
 
 	if (IS_ENABLED(CONFIG_ESM_K3)) {
