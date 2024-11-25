@@ -171,6 +171,16 @@ static int configure_serialno(struct bootflow *bflow)
 	return bootflow_cmdline_set_arg(bflow, "androidboot.serialno", serialno, false);
 }
 
+static int configure_dtbo_idx(struct bootflow *bflow)
+{
+	char *adtbo_idx = env_get("adtbo_idx");
+
+	if (!adtbo_idx)
+		return log_msg_ret("dtbo", -ENOENT);
+
+	return bootflow_cmdline_set_arg(bflow, "androidboot.dtbo_idx", adtbo_idx, false);
+}
+
 static int android_read_bootflow(struct udevice *dev, struct bootflow *bflow)
 {
 	struct blk_desc *desc = dev_get_uclass_plat(bflow->blk);
@@ -264,8 +274,12 @@ static int android_read_bootflow(struct udevice *dev, struct bootflow *bflow)
 		goto free_priv;
 	}
 
-	/* Ignoring return code: setting serial number is not mandatory for booting */
+	/*
+	 * Ignoring return code: setting serial number and
+	 * dtbo index are not mandatory for booting
+	 */
 	configure_serialno(bflow);
+	configure_dtbo_idx(bflow);
 
 	if (priv->boot_mode == ANDROID_BOOT_MODE_NORMAL) {
 		ret = bootflow_cmdline_set_arg(bflow, "androidboot.force_normal_boot",
