@@ -22,6 +22,7 @@
 #include <malloc.h>
 #include <mapmem.h>
 #include <part.h>
+#include <version.h>
 #include "bootmeth_android.h"
 
 #define BCB_FIELD_COMMAND_SZ 32
@@ -171,6 +172,12 @@ static int configure_serialno(struct bootflow *bflow)
 	return bootflow_cmdline_set_arg(bflow, "androidboot.serialno", serialno, false);
 }
 
+static int configure_bootloader_version(struct bootflow *bflow)
+{
+	return bootflow_cmdline_set_arg(bflow, "androidboot.bootloader",
+					PLAIN_VERSION, false);
+}
+
 static int configure_dtbo_idx(struct bootflow *bflow)
 {
 	char *adtbo_idx = env_get("adtbo_idx");
@@ -275,10 +282,11 @@ static int android_read_bootflow(struct udevice *dev, struct bootflow *bflow)
 	}
 
 	/*
-	 * Ignoring return code: setting serial number and
-	 * dtbo index are not mandatory for booting
+	 * Ignoring return code for the following configurations:
+	 * these are not mandatory for booting.
 	 */
 	configure_serialno(bflow);
+	configure_bootloader_version(bflow);
 	configure_dtbo_idx(bflow);
 
 	if (priv->boot_mode == ANDROID_BOOT_MODE_NORMAL) {
