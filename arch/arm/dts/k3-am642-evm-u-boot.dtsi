@@ -121,6 +121,10 @@
 	bootph-all;
 };
 
+&main_bcdma {
+	bootph-all;
+};
+
 &main_pktdma {
 	bootph-all;
 };
