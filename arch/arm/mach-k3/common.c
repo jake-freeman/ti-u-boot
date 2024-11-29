@@ -241,8 +241,8 @@ void __noreturn lpm_resume_from_ddr(void)
 		      (void *)lpm_data->tifs_context_save_address);
 
 	image_entry = (image_entry_noargs_t)(u64 *)lpm_data->dm_jump_address;
-	printf("Resuming from DDR, jumping to stored DM loadaddr 0x%p\n",
-	       image_entry);
+	printf("Resuming from DDR, jumping to stored DM loadaddr 0x%p, TIFS context restored from 0x%p\n",
+	       image_entry, (void *)lpm_data->tifs_context_save_address);
 
 	image_entry();
 }
