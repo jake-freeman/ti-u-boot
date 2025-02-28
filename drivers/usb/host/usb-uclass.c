@@ -308,6 +308,7 @@ int usb_init(void)
 	uclass_foreach_dev(bus, uc) {
 		/* init low_level USB */
 		printf("Bus %s: ", bus->name);
+		printf("Jake is here\n");
 
 		/*
 		 * For Sandbox, we need scan the device tree each time when we
@@ -320,15 +321,21 @@ int usb_init(void)
 		 */
 		if (IS_ENABLED(CONFIG_SANDBOX) ||
 		    IS_ENABLED(CONFIG_USB_ONBOARD_HUB)) {
+			printf("dm_scan_fdt_dev - START\n");
 			ret = dm_scan_fdt_dev(bus);
 			if (ret) {
 				printf("USB device scan from fdt failed (%d)", ret);
 				continue;
 			}
+
+			printf("dm_scan_fdt_dev - PASS\n");
 		}
 
+		printf("device_probe - START\n");
 		ret = device_probe(bus);
+		printf("device_probe - END\n");
 		if (ret == -ENODEV) {	/* No such device. */
+			printf("device_probe - FAIL\n");
 			puts("Port not available.\n");
 			controllers_initialized++;
 			continue;
@@ -339,9 +346,13 @@ int usb_init(void)
 			continue;
 		}
 
+		printf("device_probe - PASS\n");
+
 		ret = usb_probe_companion(bus);
 		if (ret)
 			continue;
+
+		printf("usb_probe_companion - PASS\n");
 
 		controllers_initialized++;
 		usb_started = true;

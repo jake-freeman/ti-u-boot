@@ -30,8 +30,8 @@
 	memory@80000000 {
 		bootph-pre-ram;
 		device_type = "memory";
-		/* 2G RAM */
-		reg = <0x00000000 0x80000000 0x00000000 0x80000000>;
+		/* 4G RAM */
+		reg = <0x00000000 0x80000000 0x00000001 0x00000000>;
 	};
 
 	reserved-memory {
@@ -270,6 +270,12 @@
 			AM62X_IOPAD(0x024, PIN_INPUT, 0) /* (H25) OSPI0_D6 */
 			AM62X_IOPAD(0x028, PIN_INPUT, 0) /* (J22) OSPI0_D7 */
 			AM62X_IOPAD(0x008, PIN_INPUT, 0) /* (J24) OSPI0_DQS */
+		>;
+	};
+
+	main_usb0_pins_default: main-usb0-default-pins {
+		pinctrl-single,pins = <
+			AM62X_IOPAD(0x0254, PIN_OUTPUT, 0) /* (C20) USB0_DRVVBUS */
 		>;
 	};
 
@@ -527,6 +533,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	usb-role-switch;
+	pinctrl-0 = <&main_usb0_pins_default>;
 
 	port@0 {
 		reg = <0>;

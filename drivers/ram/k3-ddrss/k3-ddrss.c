@@ -5,6 +5,8 @@
  * Copyright (C) 2020-2021 Texas Instruments Incorporated - https://www.ti.com/
  */
 
+#define DEBUG
+
 #include <common.h>
 #include <config.h>
 #include <time.h>

@@ -305,8 +305,10 @@ static void *alloc_priv(int size, uint flags)
 
 	if (flags & DM_FLAG_ALLOC_PRIV_DMA) {
 		size = ROUND(size, ARCH_DMA_MINALIGN);
+		printf("memalign - START\n");
 		priv = memalign(ARCH_DMA_MINALIGN, size);
 		if (priv) {
+			printf("memset - START\n");
 			memset(priv, '\0', size);
 
 			/*
@@ -329,9 +331,11 @@ static void *alloc_priv(int size, uint flags)
 			 * use normal flush-after-write, invalidate-before-read
 			 * procedures.
 			 */
+			printf("flush_dcache_range - START\n");
 			flush_dcache_range((ulong)priv, (ulong)priv + size);
 		}
 	} else {
+		printf("calloc - START\n");
 		priv = calloc(1, size);
 	}
 
@@ -354,7 +358,9 @@ static int device_alloc_priv(struct udevice *dev)
 	assert(drv);
 
 	/* Allocate private data if requested and not reentered */
+	printf("dev_get_priv - START\n");
 	if (drv->priv_auto && !dev_get_priv(dev)) {
+		printf("alloc_priv(priv_auto) - START\n");
 		ptr = alloc_priv(drv->priv_auto, drv->flags);
 		if (!ptr)
 			return -ENOMEM;
@@ -363,7 +369,9 @@ static int device_alloc_priv(struct udevice *dev)
 
 	/* Allocate private data if requested and not reentered */
 	size = dev->uclass->uc_drv->per_device_auto;
+	printf("dev_get_uclass_priv - START\n");
 	if (size && !dev_get_uclass_priv(dev)) {
+		printf("alloc_priv(size) - START\n");
 		ptr = alloc_priv(size, dev->uclass->uc_drv->flags);
 		if (!ptr)
 			return -ENOMEM;
@@ -375,10 +383,13 @@ static int device_alloc_priv(struct udevice *dev)
 		size = dev->parent->driver->per_child_auto;
 		if (!size)
 			size = dev->parent->uclass->uc_drv->per_child_auto;
+		printf("dev_get_parent_priv - START\n");
 		if (size && !dev_get_parent_priv(dev)) {
+			printf("alloc_priv(size-2) - START\n");
 			ptr = alloc_priv(size, drv->flags);
 			if (!ptr)
 				return -ENOMEM;
+			printf("dev_set_parent_priv - START\n");
 			dev_set_parent_priv(dev, ptr);
 		}
 	}
@@ -394,6 +405,7 @@ int device_of_to_plat(struct udevice *dev)
 	if (!dev)
 		return -EINVAL;
 
+	printf("dev_get_flags - START\n");
 	if (dev_get_flags(dev) & DM_FLAG_PLATDATA_VALID)
 		return 0;
 
@@ -404,6 +416,7 @@ int device_of_to_plat(struct udevice *dev)
 	if (!CONFIG_IS_ENABLED(OF_PLATDATA_NO_BIND)) {
 		/* Ensure all parents have ofdata */
 		if (dev->parent) {
+			printf("device_of_to_plat(parent) - START\n");
 			ret = device_of_to_plat(dev->parent);
 			if (ret)
 				goto fail;
@@ -414,10 +427,12 @@ int device_of_to_plat(struct udevice *dev)
 			 * (e.g. PCI bridge devices). Test the flags again
 			 * so that we don't mess up the device.
 			 */
+			printf("dev_get_flags - START\n");
 			if (dev_get_flags(dev) & DM_FLAG_PLATDATA_VALID)
 				return 0;
 		}
 
+		printf("device_alloc_priv - START\n");
 		ret = device_alloc_priv(dev);
 		if (ret)
 			goto fail;
@@ -432,10 +447,12 @@ int device_of_to_plat(struct udevice *dev)
 			goto fail;
 	}
 
+	printf("dev_or_flags - START\n");
 	dev_or_flags(dev, DM_FLAG_PLATDATA_VALID);
 
 	return 0;
 fail:
+	printf("device_free - START\n");
 	device_free(dev);
 
 	return ret;
@@ -483,12 +500,16 @@ int device_probe(struct udevice *dev)
 	const struct driver *drv;
 	int ret;
 
+	printf("device_probe - START\n");
+
 	if (!dev)
 		return -EINVAL;
 
+	printf("dev_get_flags - START\n");
 	if (dev_get_flags(dev) & DM_FLAG_ACTIVATED)
 		return 0;
 
+	printf("device_notify - START\n");
 	ret = device_notify(dev, EVT_DM_PRE_PROBE);
 	if (ret)
 		return ret;
@@ -496,12 +517,14 @@ int device_probe(struct udevice *dev)
 	drv = dev->driver;
 	assert(drv);
 
+	printf("device_of_to_plat - START\n");
 	ret = device_of_to_plat(dev);
 	if (ret)
 		goto fail;
 
 	/* Ensure all parents are probed */
 	if (dev->parent) {
+		printf("device_probe(parent) - START\n");
 		ret = device_probe(dev->parent);
 		if (ret)
 			goto fail;
@@ -512,15 +535,18 @@ int device_probe(struct udevice *dev)
 		 * (e.g. PCI bridge devices). Test the flags again
 		 * so that we don't mess up the device.
 		 */
+		printf("dev_get_flags - START\n");
 		if (dev_get_flags(dev) & DM_FLAG_ACTIVATED)
 			return 0;
 	}
 
+	printf("dev_or_flags - START\n");
 	dev_or_flags(dev, DM_FLAG_ACTIVATED);
 
 	if (CONFIG_IS_ENABLED(POWER_DOMAIN) && dev->parent &&
 	    (device_get_uclass_id(dev) != UCLASS_POWER_DOMAIN) &&
 	    !(drv->flags & DM_FLAG_DEFAULT_PD_CTRL_OFF)) {
+		printf("dev_power_domain_on - START\n");
 		ret = dev_power_domain_on(dev);
 		if (ret)
 			goto fail;
@@ -542,6 +568,7 @@ int device_probe(struct udevice *dev)
 	 * associated uclass methods have not yet been called.
 	 */
 	if (dev->parent && device_get_uclass_id(dev) != UCLASS_PINCTRL) {
+		printf("pinctrl_select_state - START\n");
 		ret = pinctrl_select_state(dev, "default");
 		if (ret && ret != -ENOSYS)
 			log_debug("Device '%s' failed to configure default pinctrl: %d (%s)\n",
@@ -550,15 +577,18 @@ int device_probe(struct udevice *dev)
 
 	if (CONFIG_IS_ENABLED(IOMMU) && dev->parent &&
 	    (device_get_uclass_id(dev) != UCLASS_IOMMU)) {
+		printf("dev_iommu_enable - START\n");
 		ret = dev_iommu_enable(dev);
 		if (ret)
 			goto fail;
 	}
 
+	printf("device_get_dma_constraints - START\n");
 	ret = device_get_dma_constraints(dev);
 	if (ret)
 		goto fail;
 
+	printf("uclass_pre_probe_device - START\n");
 	ret = uclass_pre_probe_device(dev);
 	if (ret)
 		goto fail;
@@ -575,6 +605,7 @@ int device_probe(struct udevice *dev)
 		 * Process 'assigned-{clocks/clock-parents/clock-rates}'
 		 * properties
 		 */
+		printf("clk_set_defaults - START\n");
 		ret = clk_set_defaults(dev, CLK_DEFAULTS_PRE);
 		if (ret)
 			goto fail;
@@ -586,17 +617,20 @@ int device_probe(struct udevice *dev)
 			goto fail;
 	}
 
+	printf("uclass_post_probe_device - START\n");
 	ret = uclass_post_probe_device(dev);
 	if (ret)
 		goto fail_uclass;
 
 	if (dev->parent && device_get_uclass_id(dev) == UCLASS_PINCTRL) {
+		printf("pinctrl_select_state - START\n");
 		ret = pinctrl_select_state(dev, "default");
 		if (ret && ret != -ENOSYS)
 			log_debug("Device '%s' failed to configure default pinctrl: %d (%s)\n",
 				  dev->name, ret, errno_str(ret));
 	}
 
+	printf("device_notify - START\n");
 	ret = device_notify(dev, EVT_DM_POST_PROBE);
 	if (ret)
 		goto fail_event;
@@ -609,8 +643,10 @@ fail_uclass:
 			__func__, dev->name);
 	}
 fail:
+	printf("dev_bic_flags - START\n");
 	dev_bic_flags(dev, DM_FLAG_ACTIVATED);
 
+	printf("device_free - START\n");
 	device_free(dev);
 
 	return ret;
